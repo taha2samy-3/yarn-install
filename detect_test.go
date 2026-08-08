@@ -65,7 +65,6 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 					Metadata: pnpminstall.BuildPlanMetadata{
 						Build:  true,
 						Launch: true,
-						Launch: true,
 					},
 				},
 			},
@@ -99,8 +98,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 						Name: "pnpm",
 						Metadata: pnpminstall.BuildPlanMetadata{
 							Build:  true,
-						Launch: true,
-						Launch: true,
+							Launch: true,
 						},
 					},
 				},
