@@ -81,7 +81,7 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 
 			t.Logf("[DEBUG] Build succeeded. Verifying installation process logs...")
 			Expect(logs).To(ContainLines(
-				fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "1.2.3"),
+				fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "0.0.1"),
 				extenderBuildStr+"  Resolving installation process",
 				extenderBuildStr+"    Process inputs:",
 				extenderBuildStr+"      pnpm-lock.yaml -> Found",
@@ -155,7 +155,7 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 
 			t.Logf("[DEBUG] Build succeeded. Verifying offline installation logs...")
 			Expect(logs).To(ContainLines(
-				fmt.Sprintf("%s %s", buildpackInfo.Buildpack.Name, "1.2.3"),
+				fmt.Sprintf("%s %s", buildpackInfo.Buildpack.Name, "0.0.1"),
 				"  Resolving installation process",
 				"    Process inputs:",
 				"      pnpm-lock.yaml -> Found",
@@ -224,7 +224,7 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 
 			t.Logf("[DEBUG] Build succeeded. Verifying build environment installation logs...")
 			Expect(logs).To(ContainLines(
-				fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "1.2.3"),
+				fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "0.0.1"),
 				extenderBuildStr+"  Resolving installation process",
 				extenderBuildStr+"    Process inputs:",
 				extenderBuildStr+"      pnpm-lock.yaml -> Found",

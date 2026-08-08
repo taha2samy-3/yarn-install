@@ -116,14 +116,14 @@ func TestIntegration(t *testing.T) {
 
 	fmt.Println("[DEBUG] Fetching main buildpackURI...")
 	buildpackURI, err = buildpackStore.Get.
-		WithVersion("1.2.3").
+		WithVersion("0.0.1").
 		Execute(root)
 	Expect(err).ToNot(HaveOccurred())
 
 	fmt.Println("[DEBUG] Fetching buildpackOfflineURI...")
 	buildpackOfflineURI, err = buildpackStore.Get.
 		WithOfflineDependencies().
-		WithVersion("1.2.3").
+		WithVersion("0.0.1").
 		Execute(root)
 	Expect(err).ToNot(HaveOccurred())
 

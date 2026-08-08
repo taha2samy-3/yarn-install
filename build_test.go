@@ -140,7 +140,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			result, err := build(packit.BuildContext{
 				BuildpackInfo: packit.BuildpackInfo{
 					Name:        "Some Buildpack",
-					Version:     "1.2.3",
+					Version:     "0.0.1",
 					SBOMFormats: []string{"application/vnd.cyclonedx+json", "application/spdx+json", "application/vnd.syft+json"},
 				},
 				WorkingDir: workingDir,
@@ -315,7 +315,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			result, err := build(packit.BuildContext{
 				BuildpackInfo: packit.BuildpackInfo{
 					Name:        "Some Buildpack",
-					Version:     "1.2.3",
+					Version:     "0.0.1",
 					SBOMFormats: []string{"application/vnd.cyclonedx+json", "application/spdx+json", "application/vnd.syft+json"},
 				},
 				WorkingDir: workingDir,
@@ -492,7 +492,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			result, err := build(packit.BuildContext{
 				BuildpackInfo: packit.BuildpackInfo{
 					Name:        "Some Buildpack",
-					Version:     "1.2.3",
+					Version:     "0.0.1",
 					SBOMFormats: []string{"application/vnd.cyclonedx+json", "application/spdx+json", "application/vnd.syft+json"},
 				},
 				WorkingDir: workingDir,
@@ -546,7 +546,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			result, err := build(packit.BuildContext{
 				BuildpackInfo: packit.BuildpackInfo{
 					Name:        "Some Buildpack",
-					Version:     "1.2.3",
+					Version:     "0.0.1",
 					SBOMFormats: []string{"application/vnd.cyclonedx+json", "application/spdx+json", "application/vnd.syft+json"},
 				},
 				WorkingDir: workingDir,
@@ -605,7 +605,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			result, err := build(packit.BuildContext{
 				BuildpackInfo: packit.BuildpackInfo{
 					Name:        "Some Buildpack",
-					Version:     "1.2.3",
+					Version:     "0.0.1",
 					SBOMFormats: []string{"application/vnd.cyclonedx+json", "application/spdx+json", "application/vnd.syft+json"},
 				},
 				WorkingDir: workingDir,
@@ -662,7 +662,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			result, err := build(packit.BuildContext{
 				BuildpackInfo: packit.BuildpackInfo{
 					Name:        "Some Buildpack",
-					Version:     "1.2.3",
+					Version:     "0.0.1",
 					SBOMFormats: []string{"application/vnd.cyclonedx+json", "application/spdx+json", "application/vnd.syft+json"},
 				},
 				WorkingDir: workingDir,

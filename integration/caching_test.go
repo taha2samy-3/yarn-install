@@ -285,7 +285,7 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 
 				t.Logf("[DEBUG] Checking if the second build output reused the cached layer...")
 				Expect(secondLogs).To(ContainLines(
-					fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "1.2.3"),
+					fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "0.0.1"),
 					extenderBuildStr+"  Resolving installation process",
 					extenderBuildStr+"    Process inputs:",
 					extenderBuildStr+"      pnpm-lock.yaml -> Found",

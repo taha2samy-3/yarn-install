@@ -1,6 +1,7 @@
 {
   "name": "@sample/sample-monorepo-app",
   "repository": "git@github.com:giedrioks/sample-monorepo.git",
+  "packageManager": "pnpm@10.34.5",
   "main": "packages/sample-app/index.js",
   "scripts": {
     "start": "node packages/sample-app/index.js",

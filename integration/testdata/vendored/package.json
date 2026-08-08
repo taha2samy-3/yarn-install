@@ -1,6 +1,7 @@
 {
   "name": "simple_app_vendored",
   "version": "1.0.0",
+  "packageManager": "pnpm@10.34.5",
   "license": "MIT",
   "dependencies": {
     "leftpad": "^0.0.1"

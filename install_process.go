@@ -161,6 +161,8 @@ func (ip PnpmInstallProcess) Execute(workingDir, modulesLayerPath string, launch
 
 	if launch && os.Getenv("NODE_ENV") != "development" {
 		installArgs = append(installArgs, "--prod")
+	} else if !launch {
+		environment = append(environment, "NODE_ENV=development")
 	}
 
 	ip.logger.Subprocess("Running 'pnpm %s'", strings.Join(installArgs, " "))

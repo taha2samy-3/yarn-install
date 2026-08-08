@@ -1,13 +1,13 @@
 module github.com/paketo-buildpacks/pnpm-install
 
-go 1.26.3
+go 1.26.5
 
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/onsi/gomega v1.42.1
 	github.com/paketo-buildpacks/libnodejs v0.4.3
-	github.com/paketo-buildpacks/occam v0.31.2
-	github.com/paketo-buildpacks/packit/v2 v2.25.4
+	github.com/paketo-buildpacks/occam v0.31.4
+	github.com/paketo-buildpacks/packit/v2 v2.25.5
 	github.com/sclevine/spec v1.4.0
 )
 
@@ -115,7 +115,6 @@ require (
 	github.com/diskfs/go-diskfs v1.9.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v29.7.1+incompatible // indirect
-	github.com/docker/docker v28.5.2+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.8 // indirect
 	github.com/docker/go-connections v0.8.1 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -196,7 +195,6 @@ require (
 	github.com/moby/moby/api v1.55.0 // indirect
 	github.com/moby/moby/client v0.5.1 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
-	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	github.com/moby/sys/sequential v0.7.0 // indirect
 	github.com/moby/sys/signal v0.7.1 // indirect
