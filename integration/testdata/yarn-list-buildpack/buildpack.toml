@@ -1,9 +1,0 @@
-api = "0.7"
-
-[buildpack]
-  id = "paketo-buildpacks/yarn-install/yarn-list"
-  name = "Paketo Yarn List Buildpack"
-  version = "0.0.1"
-
-[[stacks]]
-  id = "*"

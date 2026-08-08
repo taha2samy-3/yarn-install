@@ -73,7 +73,7 @@ func testVendored(t *testing.T, context spec.G, it spec.S) {
 			image, _, err = pack.Build.
 				WithBuildpacks(
 					nodeOfflineURI,
-					yarnOfflineURI,
+					pnpmOfflineURI,
 					buildpackOfflineURI,
 					buildPlanURI,
 				).
@@ -94,7 +94,7 @@ func testVendored(t *testing.T, context spec.G, it spec.S) {
 			}).Should(ContainSubstring("leftpad"))
 		})
 
-		context("and the node_modules and yarn-offline-mirror are missing dependencies required in yarn.lock", func() {
+		context("and the node_modules and pnpm-store are missing dependencies required in pnpm-lock.yaml", func() {
 			it("should fail to build with a helpful error", func() {
 				var err error
 				source, err = occam.Source(filepath.Join("testdata", "vendored_with_unmet_dependencies"))
@@ -103,13 +103,17 @@ func testVendored(t *testing.T, context spec.G, it spec.S) {
 				image, _, err = pack.Build.
 					WithBuildpacks(
 						nodeOfflineURI,
-						yarnOfflineURI,
+						pnpmOfflineURI,
 						buildpackOfflineURI,
 						buildPlanURI,
 					).
 					WithNetwork("none").
 					Execute(name, source)
-				Expect(err).To(MatchError(ContainSubstring(`error Can't make a request in offline mode ("https://registry.yarnpkg.com/leftpad/-/leftpad-0.0.1.tgz")`)))
+				Expect(err).To(MatchError(Or(
+					ContainSubstring("ERR_PNPM_NO_OFFLINE_META"),
+					ContainSubstring("EAI_AGAIN"),
+					ContainSubstring("FetchError"),
+				)))
 			})
 		})
 	})

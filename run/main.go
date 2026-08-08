@@ -13,7 +13,7 @@ import (
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 	"github.com/paketo-buildpacks/packit/v2/servicebindings"
 
-	yarninstall "github.com/paketo-buildpacks/yarn-install"
+	pnpminstall "github.com/paketo-buildpacks/pnpm-install"
 )
 
 type SBOMGenerator struct{}
@@ -24,10 +24,10 @@ func (s SBOMGenerator) Generate(path string) (sbom.SBOM, error) {
 
 func main() {
 	logger := scribe.NewEmitter(os.Stdout).WithLevel(os.Getenv("BP_LOG_LEVEL"))
-	installProcess := yarninstall.NewYarnInstallProcess(pexec.NewExecutable("yarn"), fs.NewChecksumCalculator(), logger)
+	installProcess := pnpminstall.NewPnpmInstallProcess(pexec.NewExecutable("pnpm"), fs.NewChecksumCalculator(), logger)
 	sbomGenerator := SBOMGenerator{}
-	symlinker := yarninstall.NewSymlinker()
-	packageManagerConfigurationManager := yarninstall.NewPackageManagerConfigurationManager(servicebindings.NewResolver(), logger)
+	symlinker := pnpminstall.NewSymlinker()
+	packageManagerConfigurationManager := pnpminstall.NewPackageManagerConfigurationManager(servicebindings.NewResolver(), logger)
 	entryResolver := draft.NewPlanner()
 	home, err := os.UserHomeDir()
 	tmpDir := os.TempDir()
@@ -37,8 +37,8 @@ func main() {
 	}
 
 	packit.Run(
-		yarninstall.Detect(),
-		yarninstall.Build(entryResolver,
+		pnpminstall.Detect(),
+		pnpminstall.Build(entryResolver,
 			packageManagerConfigurationManager,
 			home,
 			symlinker,

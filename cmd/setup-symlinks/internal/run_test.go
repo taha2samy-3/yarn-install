@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/paketo-buildpacks/yarn-install/cmd/setup-symlinks/internal"
+	"github.com/paketo-buildpacks/pnpm-install/cmd/setup-symlinks/internal"
 	"github.com/sclevine/spec"
 	"github.com/sclevine/spec/report"
 
@@ -78,6 +78,18 @@ func testRun(t *testing.T, context spec.G, it spec.S) {
 			link, err := os.Readlink(filepath.Join(tmpDir, "node_modules"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(link).To(Equal(filepath.Join(layerDir, "node_modules")))
+		})
+	})
+
+	context("when node_modules is a regular directory", func() {
+		it.Before(func() {
+			Expect(os.RemoveAll(filepath.Join(appDir, "node_modules"))).To(Succeed())
+			Expect(os.MkdirAll(filepath.Join(appDir, "node_modules"), os.ModePerm)).To(Succeed())
+		})
+
+		it("returns early without error", func() {
+			err := internal.Run(executablePath, appDir)
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 

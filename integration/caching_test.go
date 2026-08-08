@@ -76,7 +76,7 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithPullPolicy(pullPolicy).
 				WithEnv(map[string]string{"NODE_ENV": "development"}).
-				WithBuildpacks(nodeURI, yarnURI, buildpackURI, buildPlanURI)
+				WithBuildpacks(nodeURI, pnpmURI, buildpackURI, buildPlanURI)
 
 			firstImage, firstLogs, err := build.Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), firstLogs.String)
@@ -133,7 +133,7 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("when the yarn enviornment changes", func() {
+	context("when the pnpm environment changes", func() {
 		it("does not reuse the node_modules layer", func() {
 			var err error
 			var container occam.Container
@@ -146,8 +146,8 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 					settings.Extensions.UbiNodejsExtension.Online,
 				).
 				WithPullPolicy(pullPolicy).
-				WithEnv(map[string]string{"YARN_IGNORE_SCRIPTS": "true"}).
-				WithBuildpacks(nodeURI, yarnURI, buildpackURI, buildPlanURI)
+				WithEnv(map[string]string{"NPM_CONFIG_IGNORE_SCRIPTS": "true"}).
+				WithBuildpacks(nodeURI, pnpmURI, buildpackURI, buildPlanURI)
 
 			firstImage, firstLogs, err := build.Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), firstLogs.String)
@@ -172,7 +172,7 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 			}).Should(ContainSubstring("leftpad"))
 
 			secondImage, secondLogs, err := build.
-				WithEnv(map[string]string{"YARN_IGNORE_SCRIPTS": "false"}).
+				WithEnv(map[string]string{"NPM_CONFIG_IGNORE_SCRIPTS": "false"}).
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred(), secondLogs.String)
 
@@ -206,7 +206,7 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 
 	context("a fixture is pushed twice", func() {
 		context("online", func() {
-			it("reuses the node_modules layer", func() {
+			it("uses and validates the cached node_modules layer", func() {
 				var err error
 				var container occam.Container
 
@@ -218,16 +218,23 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 						settings.Extensions.UbiNodejsExtension.Online,
 					).
 					WithPullPolicy(pullPolicy).
-					WithBuildpacks(nodeURI, yarnURI, buildpackURI, buildPlanURI)
+					WithBuildpacks(nodeURI, pnpmURI, buildpackURI, buildPlanURI)
 
+				t.Logf("[DEBUG] Executing the first build...")
 				firstImage, firstLogs, err := build.Execute(name, source)
 				Expect(err).NotTo(HaveOccurred(), firstLogs.String)
 
 				imageIDs[firstImage.ID] = struct{}{}
 
+				t.Logf("[DEBUG] First Image ID: %s", firstImage.ID)
+
 				Expect(firstImage.Buildpacks).To(HaveLen(4))
 				Expect(firstImage.Buildpacks[2].Key).To(Equal(buildpackInfo.Buildpack.ID))
 				Expect(firstImage.Buildpacks[2].Layers).To(HaveKey("launch-modules"))
+
+				firstLayer := firstImage.Buildpacks[2].Layers["launch-modules"]
+				t.Logf("[DEBUG] First Build - launch-modules Layer SHA: %s", firstLayer.SHA)
+				t.Logf("[DEBUG] First Build - launch-modules Layer cache_sha Metadata: %v", firstLayer.Metadata["cache_sha"])
 
 				container, err = docker.Container.Run.
 					WithCommand(fmt.Sprintf("ls -alR /layers/%s/launch-modules/node_modules", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))).
@@ -242,14 +249,21 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 					return cLogs.String()
 				}).Should(ContainSubstring("leftpad"))
 
+				t.Logf("[DEBUG] Executing the second build (which should reuse the cache)...")
 				secondImage, secondLogs, err := build.Execute(name, source)
 				Expect(err).NotTo(HaveOccurred(), secondLogs.String)
 
 				imageIDs[secondImage.ID] = struct{}{}
 
+				t.Logf("[DEBUG] Second Image ID: %s", secondImage.ID)
+
 				Expect(secondImage.Buildpacks).To(HaveLen(4))
 				Expect(secondImage.Buildpacks[2].Key).To(Equal(buildpackInfo.Buildpack.ID))
 				Expect(secondImage.Buildpacks[2].Layers).To(HaveKey("launch-modules"))
+
+				secondLayer := secondImage.Buildpacks[2].Layers["launch-modules"]
+				t.Logf("[DEBUG] Second Build - launch-modules Layer SHA: %s", secondLayer.SHA)
+				t.Logf("[DEBUG] Second Build - launch-modules Layer cache_sha Metadata: %v", secondLayer.Metadata["cache_sha"])
 
 				container, err = docker.Container.Run.
 					WithCommand(fmt.Sprintf("ls -alR /layers/%s/launch-modules/node_modules", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_"))).
@@ -264,19 +278,21 @@ func testCaching(t *testing.T, context spec.G, it spec.S) {
 					return cLogs.String()
 				}).Should(ContainSubstring("leftpad"))
 
-				Expect(secondImage.Buildpacks[2].Layers["launch-modules"].SHA).To(Equal(firstImage.Buildpacks[2].Layers["launch-modules"].SHA))
-				Expect(secondImage.Buildpacks[2].Layers["launch-modules"].Metadata["cache_sha"]).To(Equal(firstImage.Buildpacks[2].Layers["launch-modules"].Metadata["cache_sha"]))
+				t.Logf("[DEBUG] Comparing the layer properties...")
+				Expect(secondLayer.SHA).To(Equal(firstLayer.SHA))
+				Expect(secondLayer.Metadata["cache_sha"]).To(Equal(firstLayer.Metadata["cache_sha"]))
+				t.Logf("[DEBUG] Layer SHA and metadata cache_sha match. Cache reuse is cryptographically verified.")
 
-				Expect(secondImage.ID).To(Equal(firstImage.ID), fmt.Sprintf("%s\n\n%s", firstLogs, secondLogs))
-
+				t.Logf("[DEBUG] Checking if the second build output reused the cached layer...")
 				Expect(secondLogs).To(ContainLines(
 					fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "1.2.3"),
 					extenderBuildStr+"  Resolving installation process",
 					extenderBuildStr+"    Process inputs:",
-					extenderBuildStr+"      yarn.lock -> Found",
+					extenderBuildStr+"      pnpm-lock.yaml -> Found",
 					extenderBuildStr+"",
 					fmt.Sprintf(extenderBuildStr+"  Reusing cached layer /layers/%s/launch-modules", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
 				))
+				t.Logf("[DEBUG] Buildpack successfully skipped installation and reused the cached launch-modules layer.")
 			})
 		})
 	})

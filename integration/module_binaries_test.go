@@ -65,7 +65,7 @@ func testModuleBinaries(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
 				).
@@ -74,7 +74,7 @@ func testModuleBinaries(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred(), logs.String)
 
 			container, err = docker.Container.Run.WithTTY().
-				WithCommand(`chalk bold 'PAKETO' && yarn start`).
+				WithCommand(`chalk bold 'PAKETO' && pnpm start`).
 				Execute(image.ID)
 			Expect(err).NotTo(HaveOccurred())
 		})

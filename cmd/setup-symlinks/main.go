@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/paketo-buildpacks/yarn-install/cmd/setup-symlinks/internal"
+	"github.com/paketo-buildpacks/pnpm-install/cmd/setup-symlinks/internal"
 )
 
 func main() {

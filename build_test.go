@@ -1,4 +1,4 @@
-package yarninstall_test
+package pnpminstall_test
 
 import (
 	"bytes"
@@ -16,8 +16,8 @@ import (
 	"github.com/paketo-buildpacks/packit/v2/sbom"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 
-	yarninstall "github.com/paketo-buildpacks/yarn-install"
-	"github.com/paketo-buildpacks/yarn-install/fakes"
+	pnpminstall "github.com/paketo-buildpacks/pnpm-install"
+	"github.com/paketo-buildpacks/pnpm-install/fakes"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -112,7 +112,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			return nil
 		}
 
-		build = yarninstall.Build(
+		build = pnpminstall.Build(
 			entryResolver,
 			configurationManager,
 			homeDir,
@@ -286,9 +286,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(determinePathCalls[0].PlatformDir).To(Equal("some-platform-path"))
 			Expect(determinePathCalls[0].Entry).To(Equal(".npmrc"))
 
-			Expect(determinePathCalls[1].Typ).To(Equal("yarnrc"))
+			Expect(determinePathCalls[1].Typ).To(Equal("pnpmrc"))
 			Expect(determinePathCalls[1].PlatformDir).To(Equal("some-platform-path"))
-			Expect(determinePathCalls[1].Entry).To(Equal(".yarnrc"))
+			Expect(determinePathCalls[1].Entry).To(Equal(".pnpmrc"))
 
 			Expect(symlinker.LinkCall.CallCount).To(BeZero())
 
@@ -459,9 +459,9 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(determinePathCalls[0].PlatformDir).To(Equal("some-platform-path"))
 			Expect(determinePathCalls[0].Entry).To(Equal(".npmrc"))
 
-			Expect(determinePathCalls[1].Typ).To(Equal("yarnrc"))
+			Expect(determinePathCalls[1].Typ).To(Equal("pnpmrc"))
 			Expect(determinePathCalls[1].PlatformDir).To(Equal("some-platform-path"))
-			Expect(determinePathCalls[1].Entry).To(Equal(".yarnrc"))
+			Expect(determinePathCalls[1].Entry).To(Equal(".pnpmrc"))
 
 			Expect(symlinker.LinkCall.CallCount).To(BeZero())
 
@@ -589,7 +589,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 			tmpLink, err := os.Readlink(filepath.Join(tmpDir, "node_modules"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(tmpLink).To(Equal(filepath.Join(layersDir, "build-modules", "node_modules")))
+			Expect(tmpLink).To(Equal(filepath.Join(layersDir, "launch-modules", "node_modules")))
 		})
 	})
 
@@ -646,7 +646,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 			tmpLink, err := os.Readlink(filepath.Join(tmpDir, "node_modules"))
 			Expect(err).NotTo(HaveOccurred())
-			Expect(tmpLink).To(Equal(filepath.Join(layersDir, "build-modules", "node_modules")))
+			Expect(tmpLink).To(Equal(filepath.Join(layersDir, "launch-modules", "node_modules")))
 
 		})
 	})
@@ -690,6 +690,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Expect(launchLayer.Name).To(Equal("launch-modules"))
 			Expect(launchLayer.Path).To(Equal(filepath.Join(layersDir, "launch-modules")))
 			Expect(launchLayer.Launch).To(BeTrue())
+			Expect(launchLayer.ExecD).To(Equal([]string{filepath.Join(cnbDir, "bin", "setup-symlinks")}))
 
 			workspaceLink, err := os.Readlink(filepath.Join(workingDir, "some-project-dir", "node_modules"))
 			Expect(err).NotTo(HaveOccurred())
@@ -749,11 +750,11 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when determining the path for the yarnrc fails", func() {
+		context("when determining the path for the pnpmrc fails", func() {
 			it.Before(func() {
 				configurationManager.DeterminePathCall.Stub = func(typ, platform, entry string) (string, error) {
-					if typ == "yarnrc" {
-						return "", errors.New("failed to determine path for yarnrc")
+					if typ == "pnpmrc" {
+						return "", errors.New("failed to determine path for pnpmrc")
 					}
 					return "", nil
 				}
@@ -770,7 +771,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						},
 					},
 				})
-				Expect(err).To(MatchError("failed to determine path for yarnrc"))
+				Expect(err).To(MatchError("failed to determine path for pnpmrc"))
 			})
 		})
 
@@ -806,18 +807,18 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when .yarnrc service binding symlink cannot be created", func() {
+		context("when .pnpmrc service binding symlink cannot be created", func() {
 			it.Before(func() {
 				configurationManager.DeterminePathCall.Stub = func(typ, platform, entry string) (string, error) {
-					if typ == "yarnrc" {
-						return "some-path/.yarnrc", nil
+					if typ == "pnpmrc" {
+						return "some-path/.pnpmrc", nil
 					}
 					return "", nil
 				}
 
 				symlinker.LinkCall.Stub = func(o string, n string) error {
-					if strings.Contains(o, ".yarnrc") {
-						return errors.New("symlinking .yarnrc error")
+					if strings.Contains(o, ".pnpmrc") {
+						return errors.New("symlinking .pnpmrc error")
 					}
 					return nil
 				}
@@ -834,7 +835,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						},
 					},
 				})
-				Expect(err).To(MatchError(ContainSubstring("symlinking .yarnrc error")))
+				Expect(err).To(MatchError(ContainSubstring("symlinking .pnpmrc error")))
 			})
 		})
 
@@ -1177,6 +1178,12 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		context("when .npmrc binding symlink can't be cleaned up", func() {
 			it.Before(func() {
+				configurationManager.DeterminePathCall.Stub = func(typ, platform, entry string) (string, error) {
+					if typ == "npmrc" {
+						return "some-path/.npmrc", nil
+					}
+					return "", nil
+				}
 				symlinker.UnlinkCall.Stub = func(p string) error {
 					if strings.Contains(p, ".npmrc") {
 						return errors.New("unlinking .npmrc error")
@@ -1199,11 +1206,17 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
-		context("when .yarnrc binding symlink can't be cleaned up", func() {
+		context("when .pnpmrc binding symlink can't be cleaned up", func() {
 			it.Before(func() {
+				configurationManager.DeterminePathCall.Stub = func(typ, platform, entry string) (string, error) {
+					if typ == "pnpmrc" {
+						return "some-path/.pnpmrc", nil
+					}
+					return "", nil
+				}
 				symlinker.UnlinkCall.Stub = func(p string) error {
-					if strings.Contains(p, ".yarnrc") {
-						return errors.New("unlinking .yarnrc error")
+					if strings.Contains(p, ".pnpmrc") {
+						return errors.New("unlinking .pnpmrc error")
 					}
 					return nil
 				}
@@ -1219,7 +1232,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 						},
 					},
 				})
-				Expect(err).To(MatchError("unlinking .yarnrc error"))
+				Expect(err).To(MatchError("unlinking .pnpmrc error"))
 			})
 		})
 	})

@@ -1,9 +1,9 @@
-package yarninstall_test
+package pnpminstall_test
 
 import (
 	"testing"
 
-	yarninstall "github.com/paketo-buildpacks/yarn-install"
+	pnpminstall "github.com/paketo-buildpacks/pnpm-install"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -13,11 +13,11 @@ func testCacheHandler(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		cacheHandler yarninstall.CacheHandler
+		cacheHandler pnpminstall.CacheHandler
 	)
 
 	it.Before(func() {
-		cacheHandler = yarninstall.NewCacheHandler()
+		cacheHandler = pnpminstall.NewCacheHandler()
 	})
 
 	context("Match", func() {

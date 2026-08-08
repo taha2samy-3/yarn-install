@@ -1,7 +1,7 @@
-package yarninstall
+package pnpminstall
 
 const (
 	PlanDependencyNodeModules = "node_modules"
 	PlanDependencyNode        = "node"
-	PlanDependencyYarn        = "yarn"
+	PlanDependencyPnpm        = "pnpm"
 )

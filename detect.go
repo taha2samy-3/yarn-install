@@ -1,9 +1,10 @@
-package yarninstall
+package pnpminstall
 
 import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/paketo-buildpacks/libnodejs"
 	"github.com/paketo-buildpacks/packit/v2"
@@ -14,6 +15,7 @@ type BuildPlanMetadata struct {
 	Version       string `toml:"version"`
 	VersionSource string `toml:"version-source"`
 	Build         bool   `toml:"build"`
+	Launch        bool   `toml:"launch"`
 }
 
 func Detect() packit.DetectFunc {
@@ -23,13 +25,13 @@ func Detect() packit.DetectFunc {
 			return packit.DetectResult{}, err
 		}
 
-		exists, err := fs.Exists(filepath.Join(projectPath, "yarn.lock"))
+		exists, err := fs.Exists(filepath.Join(projectPath, "pnpm-lock.yaml"))
 		if err != nil {
 			return packit.DetectResult{}, err
 		}
 
 		if !exists {
-			return packit.DetectResult{}, packit.Fail.WithMessage("no 'yarn.lock' file found in the project path %s", projectPath)
+			return packit.DetectResult{}, packit.Fail.WithMessage("no 'pnpm-lock.yaml' file found in the project path %s", projectPath)
 		}
 
 		pkg, err := libnodejs.ParsePackageJSON(projectPath)
@@ -57,6 +59,14 @@ func Detect() packit.DetectFunc {
 			}
 		}
 
+		// Evaluate runtime launch requirement for pnpm (defaults to true)
+		pnpmLaunch := true
+		if envLaunch := os.Getenv("BP_PNPM_IN_LAUNCH"); envLaunch != "" {
+			if parsed, err := strconv.ParseBool(envLaunch); err == nil {
+				pnpmLaunch = parsed
+			}
+		}
+
 		return packit.DetectResult{
 			Plan: packit.BuildPlan{
 				Provides: []packit.BuildPlanProvision{
@@ -65,9 +75,10 @@ func Detect() packit.DetectFunc {
 				Requires: []packit.BuildPlanRequirement{
 					nodeRequirement,
 					{
-						Name: PlanDependencyYarn,
+						Name: PlanDependencyPnpm,
 						Metadata: BuildPlanMetadata{
-							Build: true,
+							Build:  true,
+							Launch: pnpmLaunch,
 						},
 					},
 				},

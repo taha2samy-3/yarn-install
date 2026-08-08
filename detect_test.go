@@ -1,4 +1,4 @@
-package yarninstall_test
+package pnpminstall_test
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/paketo-buildpacks/packit/v2"
-	yarninstall "github.com/paketo-buildpacks/yarn-install"
+	pnpminstall "github.com/paketo-buildpacks/pnpm-install"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -16,9 +16,9 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	var (
 		Expect = NewWithT(t).Expect
 
-		filePath	  string
-		workingDir        string
-		detect            packit.DetectFunc
+		filePath   string
+		workingDir string
+		detect     packit.DetectFunc
 	)
 
 	it.Before(func() {
@@ -27,7 +27,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(os.Mkdir(filepath.Join(workingDir, "custom"), os.ModePerm)).To(Succeed())
 
-		err = os.WriteFile(filepath.Join(workingDir, "custom", "yarn.lock"), []byte{}, 0644)
+		err = os.WriteFile(filepath.Join(workingDir, "custom", "pnpm-lock.yaml"), []byte{}, 0644)
 		Expect(err).NotTo(HaveOccurred())
 
 		filePath = filepath.Join(workingDir, "custom", "package.json")
@@ -39,10 +39,10 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 
 		t.Setenv("BP_NODE_PROJECT_PATH", "custom")
 
-		detect = yarninstall.Detect()
+		detect = pnpminstall.Detect()
 	})
 
-	it("returns a plan that provides node_modules and requires node and yarn", func() {
+	it("returns a plan that provides node_modules and requires node and pnpm", func() {
 		result, err := detect(packit.DetectContext{
 			WorkingDir: workingDir,
 		})
@@ -54,15 +54,15 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 			Requires: []packit.BuildPlanRequirement{
 				{
 					Name: "node",
-					Metadata: yarninstall.BuildPlanMetadata{
+					Metadata: pnpminstall.BuildPlanMetadata{
 						Version:       "some-version",
 						VersionSource: "package.json",
 						Build:         true,
 					},
 				},
 				{
-					Name: "yarn",
-					Metadata: yarninstall.BuildPlanMetadata{
+					Name: "pnpm",
+					Metadata: pnpminstall.BuildPlanMetadata{
 						Build: true,
 					},
 				},
@@ -89,13 +89,13 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 				Requires: []packit.BuildPlanRequirement{
 					{
 						Name: "node",
-						Metadata: yarninstall.BuildPlanMetadata{
+						Metadata: pnpminstall.BuildPlanMetadata{
 							Build: true,
 						},
 					},
 					{
-						Name: "yarn",
-						Metadata: yarninstall.BuildPlanMetadata{
+						Name: "pnpm",
+						Metadata: pnpminstall.BuildPlanMetadata{
 							Build: true,
 						},
 					},
@@ -104,16 +104,16 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		})
 	})
 
-	context("when there is no yarn.lock file", func() {
+	context("when there is no pnpm-lock.yaml file", func() {
 		it.Before(func() {
-			Expect(os.Remove(filepath.Join(workingDir, "custom", "yarn.lock"))).To(Succeed())
+			Expect(os.Remove(filepath.Join(workingDir, "custom", "pnpm-lock.yaml"))).To(Succeed())
 		})
 
 		it("fails detection", func() {
 			_, err := detect(packit.DetectContext{
 				WorkingDir: workingDir,
 			})
-			Expect(err).To(MatchError(packit.Fail.WithMessage("no 'yarn.lock' file found in the project path %s", filepath.Join(workingDir, "custom"))))
+			Expect(err).To(MatchError(packit.Fail.WithMessage("no 'pnpm-lock.yaml' file found in the project path %s", filepath.Join(workingDir, "custom"))))
 		})
 	})
 
@@ -131,7 +131,7 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 	})
 
 	context("failure cases", func() {
-		context("when the yarn.lock cannot be read", func() {
+		context("when the pnpm-lock.yaml cannot be read", func() {
 			it.Before(func() {
 				Expect(os.Chmod(workingDir, 0000)).To(Succeed())
 			})

@@ -73,10 +73,10 @@ func testDevDependenciesDuringBuild(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
-					yarnList,
+					pnpmList,
 				).
 				WithPullPolicy(pullPolicy).
 				WithSBOMOutputDir(sbomDir).

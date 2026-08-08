@@ -30,7 +30,7 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 		docker = occam.NewDocker()
 	})
 
-	context("when using yarn workspaces", func() {
+	context("when using pnpm workspaces", func() {
 		var (
 			image     occam.Image
 			container occam.Container
@@ -66,13 +66,13 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 
 			it("should correctly install node modules in respective workspaces", func() {
 				var err error
-				source, err = occam.Source(filepath.Join("testdata", "with_yarn_workspaces_offline"))
+				source, err = occam.Source(filepath.Join("testdata", "with_pnpm_workspaces_offline"))
 				Expect(err).NotTo(HaveOccurred())
 
 				image, _, err = pack.Build.
 					WithBuildpacks(
 						nodeOfflineURI,
-						yarnOfflineURI,
+						pnpmOfflineURI,
 						buildpackOfflineURI,
 						buildPlanURI,
 					).
@@ -82,7 +82,7 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 
 				container, err = docker.Container.Run.
-					WithCommand("yarn start").
+					WithCommand("pnpm start").
 					WithEnv(map[string]string{"PORT": "8080"}).
 					WithPublish("8080").
 					WithPublishAll().
@@ -105,7 +105,7 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 		context("when online", func() {
 			it("should correctly install node modules in respective workspaces", func() {
 				var err error
-				source, err = occam.Source(filepath.Join("testdata", "with_yarn_workspaces"))
+				source, err = occam.Source(filepath.Join("testdata", "with_pnpm_workspaces"))
 				Expect(err).NotTo(HaveOccurred())
 
 				image, _, err = pack.Build.
@@ -114,7 +114,7 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 					).
 					WithBuildpacks(
 						nodeURI,
-						yarnURI,
+						pnpmURI,
 						buildpackURI,
 						buildPlanURI,
 					).
@@ -123,7 +123,7 @@ func testWorkspaces(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 
 				container, err = docker.Container.Run.
-					WithCommand("yarn start").
+					WithCommand("pnpm start").
 					WithEnv(map[string]string{"PORT": "8080"}).
 					WithPublish("8080").
 					WithPublishAll().

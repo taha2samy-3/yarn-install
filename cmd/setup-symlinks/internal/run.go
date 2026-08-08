@@ -16,7 +16,13 @@ func Run(executablePath, appDir string) error {
 		layerPath = fmt.Sprintf("/%s", layerPath)
 	}
 
-	linkPath, err := os.Readlink(filepath.Join(appDir, "node_modules"))
+	nodeModulesPath := filepath.Join(appDir, "node_modules")
+	info, err := os.Lstat(nodeModulesPath)
+	if err == nil && info.Mode()&os.ModeSymlink == 0 {
+		return nil
+	}
+
+	linkPath, err := os.Readlink(nodeModulesPath)
 	if err != nil {
 		return err
 	}

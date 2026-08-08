@@ -34,7 +34,6 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 			pullPolicy = "always"
 			extenderBuildStr = "[extender (build)] "
 			extenderBuildStrEscaped = `\[extender \(build\)\] `
-
 		}
 	})
 
@@ -63,6 +62,7 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 			source, err = occam.Source(filepath.Join("testdata", "simple_app"))
 			Expect(err).NotTo(HaveOccurred())
 
+			t.Logf("[DEBUG] Starting non-vendored simple app build...")
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
 				WithExtensions(
@@ -70,7 +70,7 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
 				).
@@ -79,23 +79,26 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred())
 
+			t.Logf("[DEBUG] Build succeeded. Verifying installation process logs...")
 			Expect(logs).To(ContainLines(
 				fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "1.2.3"),
 				extenderBuildStr+"  Resolving installation process",
 				extenderBuildStr+"    Process inputs:",
-				extenderBuildStr+"      yarn.lock -> Found",
+				extenderBuildStr+"      pnpm-lock.yaml -> Found",
 				extenderBuildStr+"",
-				extenderBuildStr+"    Selected default build process: 'yarn install'",
+				extenderBuildStr+"    Selected default build process: 'pnpm install'",
 				extenderBuildStr+"",
 				extenderBuildStr+"  Executing launch environment install process",
-				fmt.Sprintf(extenderBuildStr+"    Running 'yarn install --ignore-engines --frozen-lockfile --modules-folder /layers/%s/launch-modules/node_modules'", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
+				extenderBuildStr+"    Running 'pnpm install --frozen-lockfile --prod'",
 			))
+
+			t.Logf("[DEBUG] Verifying launch environment and /workspace SBOM logging...")
 			Expect(logs).To(ContainLines(
 				extenderBuildStr+"  Configuring launch environment",
 				extenderBuildStr+"    NODE_PROJECT_PATH -> \"/workspace\"",
 				fmt.Sprintf("%s    PATH              -> \"$PATH:/layers/%s/launch-modules/node_modules/.bin\"", extenderBuildStr, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
 				extenderBuildStr+"",
-				fmt.Sprintf(`%s  Generating SBOM for /layers/%s/launch-modules`, extenderBuildStr, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
+				extenderBuildStr+"  Generating SBOM for /workspace",
 				MatchRegexp(extenderBuildStrEscaped+`      Completed in (\d+)(\.\d+)?(ms|s)`),
 				extenderBuildStr+"",
 				extenderBuildStr+"  Writing SBOM in the following format(s):",
@@ -103,13 +106,11 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 				extenderBuildStr+"    application/spdx+json",
 				extenderBuildStr+"    application/vnd.syft+json",
 			))
+			t.Logf("[DEBUG] Simple app logs verified successfully.")
 		})
 	})
 
 	context("when the app is vendored", func() {
-
-		//UBI does not support offline installation at the moment,
-		//so we are skipping it.
 		if settings.Extensions.UbiNodejsExtension.Online != "" {
 			return
 		}
@@ -138,11 +139,12 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 			source, err = occam.Source(filepath.Join("testdata", "vendored"))
 			Expect(err).NotTo(HaveOccurred())
 
+			t.Logf("[DEBUG] Starting offline vendored app build...")
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
 				WithBuildpacks(
 					nodeOfflineURI,
-					yarnOfflineURI,
+					pnpmOfflineURI,
 					buildpackOfflineURI,
 					buildPlanURI,
 				).
@@ -151,26 +153,30 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred())
 
+			t.Logf("[DEBUG] Build succeeded. Verifying offline installation logs...")
 			Expect(logs).To(ContainLines(
 				fmt.Sprintf("%s %s", buildpackInfo.Buildpack.Name, "1.2.3"),
 				"  Resolving installation process",
 				"    Process inputs:",
-				"      yarn.lock -> Found",
+				"      pnpm-lock.yaml -> Found",
 				"",
-				"    Selected default build process: 'yarn install'",
+				"    Selected default build process: 'pnpm install'",
 				"",
 				"  Executing launch environment install process",
-				fmt.Sprintf("    Running 'yarn install --ignore-engines --frozen-lockfile --offline --modules-folder /layers/%s/launch-modules/node_modules'", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
+				"    Running 'pnpm install --frozen-lockfile --offline --prod'",
 			))
+
+			t.Logf("[DEBUG] Verifying launch environment and offline /workspace SBOM logging...")
 			Expect(logs).To(ContainLines(
 				"  Configuring launch environment",
 				"    NODE_PROJECT_PATH -> \"/workspace\"",
 				fmt.Sprintf("    PATH              -> \"$PATH:/layers/%s/launch-modules/node_modules/.bin\"", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
 				"",
-				fmt.Sprintf(`  Generating SBOM for /layers/%s/launch-modules`, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
+				"  Generating SBOM for /workspace",
 				MatchRegexp(`      Completed in (\d+)(\.\d+)?(ms|s)`),
 				"",
 			))
+			t.Logf("[DEBUG] Offline vendored app logs verified successfully.")
 		})
 	})
 
@@ -199,6 +205,7 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 			source, err = occam.Source(filepath.Join("testdata", "dev_dependencies_during_build"))
 			Expect(err).NotTo(HaveOccurred())
 
+			t.Logf("[DEBUG] Starting build with modules required at build-time and launch-time...")
 			var logs fmt.Stringer
 			image, logs, err = pack.WithNoColor().Build.
 				WithExtensions(
@@ -206,7 +213,7 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
 				).
@@ -215,23 +222,26 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 				Execute(name, source)
 			Expect(err).NotTo(HaveOccurred())
 
+			t.Logf("[DEBUG] Build succeeded. Verifying build environment installation logs...")
 			Expect(logs).To(ContainLines(
 				fmt.Sprintf("%s%s %s", extenderBuildStr, buildpackInfo.Buildpack.Name, "1.2.3"),
 				extenderBuildStr+"  Resolving installation process",
 				extenderBuildStr+"    Process inputs:",
-				extenderBuildStr+"      yarn.lock -> Found",
+				extenderBuildStr+"      pnpm-lock.yaml -> Found",
 				extenderBuildStr+"",
-				extenderBuildStr+"    Selected default build process: 'yarn install'",
+				extenderBuildStr+"    Selected default build process: 'pnpm install'",
 				extenderBuildStr+"",
 				extenderBuildStr+"  Executing build environment install process",
-				fmt.Sprintf("%s    Running 'yarn install --ignore-engines --frozen-lockfile --production false --modules-folder /layers/%s/build-modules/node_modules'", extenderBuildStr, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
+				extenderBuildStr+"    Running 'pnpm install --frozen-lockfile'",
 			))
+
+			t.Logf("[DEBUG] Verifying build environment configuration, /workspace SBOM generation, and launch install initiation...")
 			Expect(logs).To(ContainLines(
 				extenderBuildStr+"  Configuring build environment",
 				extenderBuildStr+`    NODE_ENV -> "development"`,
 				fmt.Sprintf("%s    PATH     -> \"$PATH:/layers/%s/build-modules/node_modules/.bin\"", extenderBuildStr, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
 				extenderBuildStr+"",
-				fmt.Sprintf(`%s  Generating SBOM for /layers/%s/build-modules`, extenderBuildStr, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
+				extenderBuildStr+"  Generating SBOM for /workspace",
 				MatchRegexp(extenderBuildStrEscaped+`      Completed in (\d+)(\.\d+)?(ms|s)`),
 				extenderBuildStr+"",
 				extenderBuildStr+"  Writing SBOM in the following format(s):",
@@ -241,20 +251,19 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 				extenderBuildStr+"",
 				extenderBuildStr+"  Resolving installation process",
 				extenderBuildStr+"    Process inputs:",
-				extenderBuildStr+"      yarn.lock -> Found",
+				extenderBuildStr+"      pnpm-lock.yaml -> Found",
 				extenderBuildStr+"",
-				extenderBuildStr+"    Selected default build process: 'yarn install'",
+				extenderBuildStr+"    Selected default build process: 'pnpm install'",
 				extenderBuildStr+"",
 				extenderBuildStr+"  Executing launch environment install process",
-				fmt.Sprintf("%s    Running 'yarn install --ignore-engines --frozen-lockfile --modules-folder /layers/%s/launch-modules/node_modules'", extenderBuildStr, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
+				extenderBuildStr+"    Running 'pnpm install --frozen-lockfile --prod'",
 			))
+
+			t.Logf("[DEBUG] Verifying launch environment configuration and cached SBOM outputs...")
 			Expect(logs).To(ContainLines(
 				extenderBuildStr+"  Configuring launch environment",
 				extenderBuildStr+"    NODE_PROJECT_PATH -> \"/workspace\"",
 				fmt.Sprintf("%s    PATH              -> \"$PATH:/layers/%s/launch-modules/node_modules/.bin\"", extenderBuildStr, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
-				extenderBuildStr+"",
-				fmt.Sprintf(`%s  Generating SBOM for /layers/%s/launch-modules`, extenderBuildStr, strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
-				MatchRegexp(extenderBuildStrEscaped+`      Completed in (\d+)(\.\d+)?(ms|s)`),
 				extenderBuildStr+"",
 				extenderBuildStr+"  Writing SBOM in the following format(s):",
 				extenderBuildStr+"    application/vnd.cyclonedx+json",
@@ -262,6 +271,7 @@ func testLogging(t *testing.T, context spec.G, it spec.S) {
 				extenderBuildStr+"    application/vnd.syft+json",
 				extenderBuildStr+"",
 			))
+			t.Logf("[DEBUG] Build-time and launch-time logs verified successfully.")
 		})
 	})
 }

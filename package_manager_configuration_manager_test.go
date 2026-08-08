@@ -1,4 +1,4 @@
-package yarninstall_test
+package pnpminstall_test
 
 import (
 	"bytes"
@@ -8,8 +8,8 @@ import (
 
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 	"github.com/paketo-buildpacks/packit/v2/servicebindings"
-	yarninstall "github.com/paketo-buildpacks/yarn-install"
-	"github.com/paketo-buildpacks/yarn-install/fakes"
+	pnpminstall "github.com/paketo-buildpacks/pnpm-install"
+	"github.com/paketo-buildpacks/pnpm-install/fakes"
 	"github.com/sclevine/spec"
 
 	. "github.com/onsi/gomega"
@@ -19,10 +19,9 @@ func testPackageManagerConfigurationManager(t *testing.T, context spec.G, it spe
 	var (
 		Expect = NewWithT(t).Expect
 
-		buffer          *bytes.Buffer
-		bindingResolver *fakes.BindingResolver
-
-		packageManagerConfigurationManager yarninstall.PackageManagerConfigurationManager
+		buffer                             *bytes.Buffer
+		bindingResolver                    *fakes.BindingResolver
+		packageManagerConfigurationManager pnpminstall.PackageManagerConfigurationManager
 	)
 
 	it.Before(func() {
@@ -30,7 +29,7 @@ func testPackageManagerConfigurationManager(t *testing.T, context spec.G, it spe
 
 		buffer = bytes.NewBuffer(nil)
 
-		packageManagerConfigurationManager = yarninstall.NewPackageManagerConfigurationManager(bindingResolver, scribe.NewEmitter(buffer))
+		packageManagerConfigurationManager = pnpminstall.NewPackageManagerConfigurationManager(bindingResolver, scribe.NewEmitter(buffer))
 	})
 
 	context("DeterminePath", func() {

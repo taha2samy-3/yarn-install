@@ -1,4 +1,4 @@
-package yarninstall
+package pnpminstall
 
 type CacheHandler struct{}
 

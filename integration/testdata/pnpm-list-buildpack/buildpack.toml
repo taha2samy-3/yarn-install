@@ -1,0 +1,9 @@
+api = "0.7"
+
+[buildpack]
+  id = "paketo-buildpacks/pnpm-install/pnpm-list"
+  name = "Paketo PNPM List Buildpack"
+  version = "0.0.1"
+
+[[stacks]]
+  id = "*"

@@ -1,0 +1,23 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      leftpad:
+        specifier: ~0.0.1
+        version: 0.0.1
+
+packages:
+
+  leftpad@0.0.1:
+    resolution: {integrity: sha512-kBAuxBQJlJ85LDc+SnGSX6gWJnJR9Qk4lbgXmz/qPfCOCieCk7BgoN3YvzoNr5BUjqxQDOQxawJJvXXd6c+6Mg==}
+    deprecated: Use the built-in String.padStart function instead
+
+snapshots:
+
+  leftpad@0.0.1: {}

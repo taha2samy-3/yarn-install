@@ -7,5 +7,5 @@
 /linux
 /darwin
 /windows
-
+/.tmp
 !offline-mirror/

@@ -66,7 +66,7 @@ func testProjectPathApp(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
 				).
@@ -121,7 +121,7 @@ func testProjectPathApp(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
 				).

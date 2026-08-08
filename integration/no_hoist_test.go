@@ -35,7 +35,7 @@ func testNoHoist(t *testing.T, context spec.G, it spec.S) {
 		}
 	})
 
-	context("when using yarn workspaces with nohoist", func() {
+	context("when using pnpm workspaces (pnpm naturally does not hoist)", func() {
 		var (
 			image     occam.Image
 			container occam.Container
@@ -72,7 +72,7 @@ func testNoHoist(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
 				).
@@ -81,7 +81,7 @@ func testNoHoist(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			container, err = docker.Container.Run.
-				WithCommand("yarn start").
+				WithCommand("pnpm start").
 				WithEnv(map[string]string{"PORT": "8080"}).
 				WithPublish("8080").
 				WithPublishAll().
@@ -108,7 +108,7 @@ func testNoHoist(t *testing.T, context spec.G, it spec.S) {
 				WithPullPolicy(pullPolicy).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
 				).

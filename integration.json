@@ -1,3 +1,4 @@
+
 {
   "builders": [
     "paketobuildpacks/ubi-10-builder-buildpackless",
@@ -10,5 +11,5 @@
   "ubi-nodejs-extension": "github.com/paketo-buildpacks/ubi-nodejs-extension",
   "build-plan": "github.com/paketo-community/build-plan",
   "node-engine": "github.com/paketo-buildpacks/node-engine",
-  "yarn": "github.com/paketo-buildpacks/yarn"
+  "pnpm": "ghcr.io/taha2samy-3/pnpm:0.0.1"
 }

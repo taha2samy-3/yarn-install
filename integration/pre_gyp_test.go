@@ -58,7 +58,7 @@ func testPreGyp(t *testing.T, context spec.G, it spec.S) {
 
 		it("should build a working OCI image for a simple app", func() {
 			var err error
-			source, err = occam.Source(filepath.Join("testdata", "yarn_pre_gyp"))
+			source, err = occam.Source(filepath.Join("testdata", "pnpm_pre_gyp"))
 			Expect(err).NotTo(HaveOccurred())
 
 			image, _, err = pack.Build.
@@ -67,7 +67,7 @@ func testPreGyp(t *testing.T, context spec.G, it spec.S) {
 				).
 				WithBuildpacks(
 					nodeURI,
-					yarnURI,
+					pnpmURI,
 					buildpackURI,
 					buildPlanURI,
 				).
@@ -76,7 +76,7 @@ func testPreGyp(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			container, err = docker.Container.Run.
-				WithCommand("yarn start").
+				WithCommand("pnpm start").
 				WithEnv(map[string]string{"PORT": "8080"}).
 				WithPublish("8080").
 				WithPublishAll().

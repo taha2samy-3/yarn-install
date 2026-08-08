@@ -1,4 +1,4 @@
-package yarninstall_test
+package pnpminstall_test
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 	"github.com/sclevine/spec/report"
 )
 
-func TestUnitYarn(t *testing.T) {
-	suite := spec.New("yarn", spec.Report(report.Terminal{}))
+func TestUnitPnpm(t *testing.T) {
+	suite := spec.New("pnpm", spec.Report(report.Terminal{}))
 	suite("Build", testBuild)
 	suite("CacheHandler", testCacheHandler)
 	suite("Detect", testDetect)
