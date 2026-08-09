@@ -24,7 +24,7 @@ func (s SBOMGenerator) Generate(path string) (sbom.SBOM, error) {
 
 func main() {
 	logger := scribe.NewEmitter(os.Stdout).WithLevel(os.Getenv("BP_LOG_LEVEL"))
-	installProcess := pnpminstall.NewPnpmInstallProcess(pexec.NewExecutable("pnpm"), fs.NewChecksumCalculator(), logger)
+	installProcess := pnpminstall.NewPnpmInstallProcess(pexec.NewExecutable("pnpm"), pexec.NewExecutable("node"), fs.NewChecksumCalculator(), logger)
 	sbomGenerator := SBOMGenerator{}
 	symlinker := pnpminstall.NewSymlinker()
 	packageManagerConfigurationManager := pnpminstall.NewPackageManagerConfigurationManager(servicebindings.NewResolver(), logger)

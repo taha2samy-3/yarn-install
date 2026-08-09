@@ -24,16 +24,20 @@ type Executable interface {
 }
 
 type PnpmInstallProcess struct {
-	executable Executable
-	summer     Summer
-	logger     scribe.Emitter
+	executable     Executable
+	nodeExecutable Executable // CHANGE: separate executable bound to "node", used only to read the resolved runtime version for cache-checksum purposes below. `executable` above is bound to "pnpm" and cannot be reused for this.
+	summer         Summer
+	logger         scribe.Emitter
 }
 
-func NewPnpmInstallProcess(executable Executable, summer Summer, logger scribe.Emitter) PnpmInstallProcess {
+// CHANGE: NewPnpmInstallProcess now takes a second Executable, bound to the
+// "node" binary. See the call site in run/main.go for how it's constructed.
+func NewPnpmInstallProcess(executable Executable, nodeExecutable Executable, summer Summer, logger scribe.Emitter) PnpmInstallProcess {
 	return PnpmInstallProcess{
-		executable: executable,
-		summer:     summer,
-		logger:     logger,
+		executable:     executable,
+		nodeExecutable: nodeExecutable,
+		summer:         summer,
+		logger:         logger,
 	}
 }
 
@@ -66,6 +70,34 @@ func (ip PnpmInstallProcess) ShouldRun(workingDir string, metadata map[string]in
 
 	nodeEnv := os.Getenv("NODE_ENV")
 	buffer.WriteString(nodeEnv)
+
+	// CHANGE: include the resolved Node.js runtime version in the cache checksum.
+	//
+	// Without this, a cached node_modules layer can be reused across builds even
+	// when the node-engine buildpack resolves a *different* Node.js version between
+	// them (e.g. a floating "engines.node": "18.x" range picking up a new patch/minor
+	// release). If the app has any natively-compiled dependencies (node-gyp/N-API
+	// addons), the cached binaries were built against the old Node ABI, and reusing
+	// them against a new Node runtime can fail or crash at launch instead of
+	// triggering a rebuild.
+	//
+	// node-engine does not export its resolved version as an env var (it's only
+	// used for its own log output), so we ask the node binary itself via a
+	// dedicated "node" Executable (nodeExecutable) — `ip.executable` above is bound
+	// to "pnpm" specifically and can't be reused for this. `node` is already on
+	// $PATH via the NODE_HOME layer that node-engine shares with every buildpack
+	// that runs after it in the same order group, so no extra resolution is needed.
+	nodeVersionBuffer := bytes.NewBuffer(nil)
+	err = ip.nodeExecutable.Execute(pexec.Execution{
+		Args:   []string{"--version"},
+		Stdout: nodeVersionBuffer,
+		Stderr: nodeVersionBuffer,
+		Dir:    workingDir,
+	})
+	if err != nil {
+		return true, "", fmt.Errorf("failed to determine node version:\n%s\nerror: %s", nodeVersionBuffer.String(), err)
+	}
+	buffer.WriteString(nodeVersionBuffer.String())
 
 	file, err := os.CreateTemp("", "config-file")
 	if err != nil {
