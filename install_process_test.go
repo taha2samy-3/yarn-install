@@ -26,6 +26,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 		var (
 			workingDir     string
 			executable     *fakes.Executable
+			nodeExecutable *fakes.Executable
 			installProcess pnpminstall.PnpmInstallProcess
 			summer         *fakes.Summer
 			buffer         *bytes.Buffer
@@ -41,6 +42,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 			Expect(err).NotTo(HaveOccurred())
 
 			executable = &fakes.Executable{}
+			nodeExecutable = &fakes.Executable{}
 			summer = &fakes.Summer{}
 			buffer = bytes.NewBuffer(nil)
 
@@ -52,7 +54,12 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 				return nil
 			}
-			installProcess = pnpminstall.NewPnpmInstallProcess(executable, summer, scribe.NewEmitter(buffer))
+			nodeExecutable.ExecuteCall.Stub = func(exec pexec.Execution) error {
+				_, err := fmt.Fprintln(exec.Stdout, "v18.20.4")
+				Expect(err).NotTo(HaveOccurred())
+				return nil
+			}
+			installProcess = pnpminstall.NewPnpmInstallProcess(executable, nodeExecutable, summer, scribe.NewEmitter(buffer))
 		})
 
 		context("we should run pnpm install when", func() {
@@ -141,7 +148,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 						executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
 							return errors.New("very bad error")
 						}
-						installProcess = pnpminstall.NewPnpmInstallProcess(executable, summer, scribe.NewEmitter(bytes.NewBuffer(nil)))
+						installProcess = pnpminstall.NewPnpmInstallProcess(executable, nodeExecutable, summer, scribe.NewEmitter(bytes.NewBuffer(nil)))
 					})
 
 					it("fails", func() {
@@ -161,6 +168,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 			nextModulesLayerPath    string
 			buffer                  *bytes.Buffer
 			executable              *fakes.Executable
+			nodeExecutable          *fakes.Executable
 			summer                  *fakes.Summer
 
 			installProcess pnpminstall.PnpmInstallProcess
@@ -181,8 +189,9 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 			buffer = bytes.NewBuffer(nil)
 
 			executable = &fakes.Executable{}
+			nodeExecutable = &fakes.Executable{}
 
-			installProcess = pnpminstall.NewPnpmInstallProcess(executable, summer, scribe.NewEmitter(buffer))
+			installProcess = pnpminstall.NewPnpmInstallProcess(executable, nodeExecutable, summer, scribe.NewEmitter(buffer))
 		})
 
 		it.After(func() {
@@ -296,6 +305,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 			executions       []pexec.Execution
 			buffer           *bytes.Buffer
 			executable       *fakes.Executable
+			nodeExecutable   *fakes.Executable
 			summer           *fakes.Summer
 
 			installProcess pnpminstall.PnpmInstallProcess
@@ -314,6 +324,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 
 			executions = []pexec.Execution{}
 			executable = &fakes.Executable{}
+			nodeExecutable = &fakes.Executable{}
 			executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
 				executions = append(executions, execution)
 				_, err := fmt.Fprintln(execution.Stdout, "stdout output")
@@ -333,7 +344,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				return nil
 			}
 
-			installProcess = pnpminstall.NewPnpmInstallProcess(executable, summer, scribe.NewEmitter(buffer))
+			installProcess = pnpminstall.NewPnpmInstallProcess(executable, nodeExecutable, summer, scribe.NewEmitter(buffer))
 		})
 
 		it.After(func() {
