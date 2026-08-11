@@ -1,4 +1,3 @@
-
 # Paketo Buildpack for PNPM Install
 
 The PNPM Install CNB generates and provides application dependencies for node
@@ -49,6 +48,7 @@ The following environment variables can be used to configure the behavior of thi
 |----------|-------------|---------|
 | `BP_NODE_PROJECT_PATH` | Specifies a project subdirectory to be used as the root of the app. This is extremely useful if your app is part of a monorepo. | `<empty>` (workspace root) |
 | `BP_PNPM_IN_LAUNCH` | Setting this to `false` prevents the `pnpm` executable requirement from being added to the launch environment. | `true` |
+| `BP_PNPM_STRICT_BUILD_SCRIPTS` | Setting this to `true` opts out of automatically allowing dependency build scripts on pnpm 10+ (see [Dependency Build Scripts](#dependency-build-scripts-pnpm-10) below). | `false` |
 | `BP_DISABLE_SBOM` | Setting this to `true` disables the generation of the Software Bill of Materials (SBOM), which can speed up the build process. | `false` |
 | `NODE_ENV` | If set to anything other than `development` during the launch phase, the buildpack will append the `--prod` flag to `pnpm install` to exclude `devDependencies`. | `development` (during build) |
 
@@ -60,7 +60,7 @@ The PNPM Install buildpack supports providing configuration files securely via [
 
 ### `npmrc` and `pnpmrc` bindings
 
-You can provide a `.npmrc` or `.pnpmrc` file to the buildpack by creating a binding of type `npmrc` or `pnpmrc`. The buildpack will automatically symlink these files into the user's home directory during the build process.
+You can provide a `.npmrc` or `.pnpmrc` file to the buildpack by creating a binding of type `npmrc` or `pnpmrc`. The buildpack will automatically symlink these files into the user's home directory during the build process. Since pnpm v10+ reads its configuration from `.npmrc` rather than `.pnpmrc`, a binding that only provides `.pnpmrc` is symlinked to both paths so registry/auth configuration still applies regardless of pnpm version.
 
 **Example structure:**
 ```text
@@ -78,10 +78,18 @@ pack build my-app \
 ## Features
 
 ### Offline Installation
-This buildpack supports offline installations (e.g., for air-gapped environments). If the buildpack detects an offline store directory (configured via `store-dir` in your `.npmrc` or `.pnpmrc`), it will automatically append the `--offline` flag to the `pnpm install` command. This requires that all necessary packages are already present in the provided store directory.
+This buildpack supports offline installations (e.g., for air-gapped environments). Before installing, the buildpack checks `pnpm config get store-dir`; if that directory already exists locally, `--offline` is automatically appended to the `pnpm install` command. This requires that all necessary packages are already present in the provided store directory.
+
+### Layer Caching
+Dependencies are cached in two independent layers, `build-modules` and `launch-modules`, each reused across builds when a checksum of the following inputs is unchanged: `pnpm-lock.yaml`, `package.json`, the output of `pnpm config list`, the current `NODE_ENV` value, and the resolved Node.js runtime version (`node --version`). The Node.js version is included specifically so that a change in the resolved Node.js version (for example, from a floating `engines.node` range picking up a new release) invalidates the cache — reusing a `node_modules` layer built against a different Node ABI can break any natively-compiled dependencies it contains.
+
+### Dependency Build Scripts (pnpm 10+)
+Starting with pnpm v10, dependency lifecycle scripts (`preinstall`, `install`, `postinstall`) are ignored by default as a supply-chain security measure — packages with native builds (e.g. `bcrypt`, `sharp`, `sqlite3`) will silently skip their build step unless explicitly approved, which normally requires an interactive prompt (`pnpm approve-builds`) that isn't available in a non-interactive buildpack build.
+
+To avoid silently shipping unbuilt native dependencies, this buildpack automatically passes `--dangerously-allow-all-builds` to `pnpm install` when the resolved pnpm version is 10 or newer. This flag doesn't exist before pnpm v10 and is never added on older versions. Set `BP_PNPM_STRICT_BUILD_SCRIPTS=true` to opt out and keep pnpm's default script-blocking behavior instead.
 
 ### Workspaces (Monorepos)
-This buildpack natively supports `pnpm workspaces`. When used in a workspace root, it will correctly install dependencies and link local workspace packages according to your `pnpm-lock.yaml` and `pnpm-workspace.yaml` files.
+This buildpack resolves the project root using the same `BP_NODE_PROJECT_PATH` convention as the existing npm and yarn buildpacks, so a `pnpm-lock.yaml`/`package.json` at a specified subdirectory of a larger repository is picked up correctly. It does not currently implement any `pnpm workspaces`-specific behavior (e.g. parsing `pnpm-workspace.yaml` or workspace-aware hoisting) beyond that project-path resolution.
 
 ## Usage
 

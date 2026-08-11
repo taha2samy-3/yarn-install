@@ -353,6 +353,14 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 					Expect(err).NotTo(HaveOccurred())
 				}
 
+				// Default stubbed pnpm version is below 10, so existing
+				// scenarios below that don't care about --dangerously-allow-all-builds
+				// keep seeing the exact same install args as before this flag existed.
+				if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+					_, err := fmt.Fprintln(execution.Stdout, "9.15.9")
+					Expect(err).NotTo(HaveOccurred())
+				}
+
 				if strings.Contains(strings.Join(execution.Args, " "), "install") {
 					Expect(os.MkdirAll(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
 				}
@@ -373,7 +381,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				err := installProcess.Execute(workingDir, modulesLayerPath, false)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(executions).To(HaveLen(2))
+				Expect(executions).To(HaveLen(3))
 				Expect(executions[0].Args).To(Equal([]string{
 					"config",
 					"get",
@@ -382,12 +390,15 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				Expect(executions[0].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
 				Expect(executions[0].Dir).To(Equal(workingDir))
 
-				Expect(executions[1].Args).To(Equal([]string{
+				Expect(executions[1].Args).To(Equal([]string{"--version"}))
+				Expect(executions[1].Dir).To(Equal(workingDir))
+
+				Expect(executions[2].Args).To(Equal([]string{
 					"install",
 					"--frozen-lockfile",
 				}))
-				Expect(executions[1].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
-				Expect(executions[1].Dir).To(Equal(workingDir))
+				Expect(executions[2].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
+				Expect(executions[2].Dir).To(Equal(workingDir))
 				Expect(buffer.String()).To(ContainLines(
 					"    Running 'pnpm install --frozen-lockfile'",
 					"      stdout output",
@@ -401,7 +412,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				err := installProcess.Execute(workingDir, modulesLayerPath, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(executions).To(HaveLen(2))
+				Expect(executions).To(HaveLen(3))
 				Expect(executions[0].Args).To(Equal([]string{
 					"config",
 					"get",
@@ -410,13 +421,15 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				Expect(executions[0].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
 				Expect(executions[0].Dir).To(Equal(workingDir))
 
-				Expect(executions[1].Args).To(Equal([]string{
+				Expect(executions[1].Args).To(Equal([]string{"--version"}))
+
+				Expect(executions[2].Args).To(Equal([]string{
 					"install",
 					"--frozen-lockfile",
 					"--prod",
 				}))
-				Expect(executions[1].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
-				Expect(executions[1].Dir).To(Equal(workingDir))
+				Expect(executions[2].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
+				Expect(executions[2].Dir).To(Equal(workingDir))
 				Expect(buffer.String()).To(ContainLines(
 					"    Running 'pnpm install --frozen-lockfile --prod'",
 					"      stdout output",
@@ -437,6 +450,11 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 						Expect(err).NotTo(HaveOccurred())
 					}
 
+					if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+						_, err := fmt.Fprintln(execution.Stdout, "9.15.9")
+						Expect(err).NotTo(HaveOccurred())
+					}
+
 					if strings.Contains(strings.Join(execution.Args, " "), "install") {
 						Expect(os.MkdirAll(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
 					}
@@ -449,7 +467,7 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				err := installProcess.Execute(workingDir, modulesLayerPath, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(executions).To(HaveLen(2))
+				Expect(executions).To(HaveLen(3))
 				Expect(executions[0].Args).To(Equal([]string{
 					"config",
 					"get",
@@ -458,14 +476,16 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				Expect(executions[0].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
 				Expect(executions[0].Dir).To(Equal(workingDir))
 
-				Expect(executions[1].Args).To(Equal([]string{
+				Expect(executions[1].Args).To(Equal([]string{"--version"}))
+
+				Expect(executions[2].Args).To(Equal([]string{
 					"install",
 					"--frozen-lockfile",
 					"--offline",
 					"--prod",
 				}))
-				Expect(executions[1].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
-				Expect(executions[1].Dir).To(Equal(workingDir))
+				Expect(executions[2].Env).To(ContainElement(MatchRegexp(fmt.Sprintf(`^PATH=.*:%s$`, filepath.Join(workingDir, "node_modules", ".bin")))))
+				Expect(executions[2].Dir).To(Equal(workingDir))
 				Expect(buffer.String()).To(ContainSubstring("Running 'pnpm install --frozen-lockfile --offline --prod'"))
 			})
 		})
@@ -483,6 +503,11 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 						Expect(err).NotTo(HaveOccurred())
 					}
 
+					if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+						_, err := fmt.Fprintln(execution.Stdout, "9.15.9")
+						Expect(err).NotTo(HaveOccurred())
+					}
+
 					if strings.Contains(strings.Join(execution.Args, " "), "install") {
 						Expect(os.MkdirAll(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
 					}
@@ -495,14 +520,82 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				err := installProcess.Execute(workingDir, modulesLayerPath, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(executions).To(HaveLen(2))
-				Expect(executions[1].Args).To(Equal([]string{
+				Expect(executions).To(HaveLen(3))
+				Expect(executions[2].Args).To(Equal([]string{
 					"install",
 					"--frozen-lockfile",
 					"--offline",
 					"--prod",
 				}))
 				Expect(buffer.String()).To(ContainSubstring("Running 'pnpm install --frozen-lockfile --offline --prod'"))
+			})
+		})
+
+		context("when the resolved pnpm version is 10 or newer", func() {
+			it.Before(func() {
+				executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+					executions = append(executions, execution)
+
+					if strings.Contains(strings.Join(execution.Args, " "), "store-dir") {
+						_, err := fmt.Fprintln(execution.Stdout, "undefined")
+						Expect(err).NotTo(HaveOccurred())
+					}
+
+					if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+						_, err := fmt.Fprintln(execution.Stdout, "10.15.9")
+						Expect(err).NotTo(HaveOccurred())
+					}
+
+					if strings.Contains(strings.Join(execution.Args, " "), "install") {
+						Expect(os.MkdirAll(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
+					}
+
+					return nil
+				}
+			})
+
+			it("adds --dangerously-allow-all-builds", func() {
+				err := installProcess.Execute(workingDir, modulesLayerPath, false)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(executions[2].Args).To(Equal([]string{
+					"install",
+					"--frozen-lockfile",
+					"--dangerously-allow-all-builds",
+				}))
+			})
+
+			context("when BP_PNPM_STRICT_BUILD_SCRIPTS is set to true", func() {
+				it.Before(func() {
+					Expect(os.Setenv("BP_PNPM_STRICT_BUILD_SCRIPTS", "true")).To(Succeed())
+				})
+
+				it.After(func() {
+					Expect(os.Unsetenv("BP_PNPM_STRICT_BUILD_SCRIPTS")).To(Succeed())
+				})
+
+				it("does not add --dangerously-allow-all-builds, and does not check the pnpm version", func() {
+					err := installProcess.Execute(workingDir, modulesLayerPath, false)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(executions).To(HaveLen(2))
+					Expect(executions[1].Args).To(Equal([]string{
+						"install",
+						"--frozen-lockfile",
+					}))
+				})
+			})
+		})
+
+		context("when the resolved pnpm version is below 10", func() {
+			it("does not add --dangerously-allow-all-builds", func() {
+				err := installProcess.Execute(workingDir, modulesLayerPath, false)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(executions[2].Args).To(Equal([]string{
+					"install",
+					"--frozen-lockfile",
+				}))
 			})
 		})
 
@@ -529,9 +622,52 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 				})
 			})
 
+			context("pnpm --version fails to execute", func() {
+				it.Before(func() {
+					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+							return errors.New("node not found")
+						}
+
+						return nil
+					}
+				})
+
+				it("returns an error", func() {
+					err := installProcess.Execute(workingDir, modulesLayerPath, true)
+					Expect(err).To(MatchError(ContainSubstring("failed to determine pnpm version")))
+					Expect(err).To(MatchError(ContainSubstring("node not found")))
+				})
+			})
+
+			context("pnpm --version returns an unparseable version string", func() {
+				it.Before(func() {
+					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+							_, err := fmt.Fprintln(execution.Stdout, "not-a-version")
+							Expect(err).NotTo(HaveOccurred())
+							return nil
+						}
+
+						return nil
+					}
+				})
+
+				it("returns an error", func() {
+					err := installProcess.Execute(workingDir, modulesLayerPath, true)
+					Expect(err).To(MatchError(ContainSubstring("failed to parse pnpm version")))
+				})
+			})
+
 			context("the pnpm executable fails to install", func() {
 				it.Before(func() {
 					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+							_, err := fmt.Fprintln(execution.Stdout, "9.15.9")
+							Expect(err).NotTo(HaveOccurred())
+							return nil
+						}
+
 						if strings.Contains(strings.Join(execution.Args, " "), "install") {
 							_, err := execution.Stdout.Write([]byte("stdout output"))
 							Expect(err).NotTo(HaveOccurred())
