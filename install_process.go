@@ -198,6 +198,40 @@ func (ip PnpmInstallProcess) Execute(workingDir, modulesLayerPath string, launch
 		environment = append(environment, "NODE_ENV=development")
 	}
 
+	// Both checks below need to know the resolved pnpm major version, so it's
+	// fetched once and reused, rather than shelling out to `pnpm --version`
+	// twice. It's skipped entirely when neither check is active, to avoid an
+	// unnecessary process execution on the common path.
+	allowBuildScripts := os.Getenv("BP_PNPM_STRICT_BUILD_SCRIPTS") != "true"
+	// PNPM_VERSION_MISMATCH is set by the pnpm buildpack (via SharedEnv) when
+	// the pnpm version it delivered doesn't exactly match what was requested
+	// (e.g. package.json's "packageManager" field asked for a patch release
+	// this buildpack's dependency metadata doesn't have yet, and it fell back
+	// to the closest available version in the same major instead). Since
+	// pnpm v9+, pnpm itself refuses to run at all when its own version
+	// doesn't exactly match "packageManager" — so this needs to be relaxed
+	// specifically for that case, not for every build.
+	handleVersionMismatch := os.Getenv("PNPM_VERSION_MISMATCH") == "true"
+
+	var pnpmMajor int
+	if allowBuildScripts || handleVersionMismatch {
+		pnpmVersionBuffer := bytes.NewBuffer(nil)
+		err = ip.executable.Execute(pexec.Execution{
+			Args:   []string{"--version"},
+			Stdout: pnpmVersionBuffer,
+			Stderr: pnpmVersionBuffer,
+			Dir:    workingDir,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to determine pnpm version:\n%s\nerror: %s", pnpmVersionBuffer.String(), err)
+		}
+
+		pnpmMajor, err = parsePnpmMajorVersion(pnpmVersionBuffer.String())
+		if err != nil {
+			return fmt.Errorf("failed to parse pnpm version %q: %w", pnpmVersionBuffer.String(), err)
+		}
+	}
+
 	// CHANGE: pnpm v10+ blocks dependency lifecycle scripts (preinstall/install/
 	// postinstall) by default as a supply-chain security measure, and the only
 	// way to approve them non-interactively is --dangerously-allow-all-builds.
@@ -214,25 +248,31 @@ func (ip PnpmInstallProcess) Execute(workingDir, modulesLayerPath string, launch
 	// (behavior on by default, explicit env var to opt out) — a CNB build runs
 	// in an isolated, ephemeral environment, which is a different trust context
 	// than the long-lived developer machine pnpm's default is designed to protect.
-	if os.Getenv("BP_PNPM_STRICT_BUILD_SCRIPTS") != "true" {
-		pnpmVersionBuffer := bytes.NewBuffer(nil)
-		err = ip.executable.Execute(pexec.Execution{
-			Args:   []string{"--version"},
-			Stdout: pnpmVersionBuffer,
-			Stderr: pnpmVersionBuffer,
-			Dir:    workingDir,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to determine pnpm version:\n%s\nerror: %s", pnpmVersionBuffer.String(), err)
-		}
+	if allowBuildScripts && pnpmMajor >= 10 {
+		installArgs = append(installArgs, "--dangerously-allow-all-builds")
+	}
 
-		pnpmMajor, err := parsePnpmMajorVersion(pnpmVersionBuffer.String())
-		if err != nil {
-			return fmt.Errorf("failed to parse pnpm version %q: %w", pnpmVersionBuffer.String(), err)
-		}
-
-		if pnpmMajor >= 10 {
-			installArgs = append(installArgs, "--dangerously-allow-all-builds")
+	// CHANGE: relax pnpm's own packageManager-version enforcement, but only
+	// when the pnpm buildpack has told us (via PNPM_VERSION_MISMATCH) that it
+	// had to substitute a different version than what was requested. In that
+	// specific case, running `pnpm install` normally would fail outright with
+	// ERR_PNPM_BAD_PM_VERSION, since pnpm refuses to run when its own version
+	// doesn't exactly match package.json's "packageManager" field. Left alone
+	// in the (much more common) case where the version matches exactly, since
+	// that check is a legitimate reproducibility guarantee for users who rely
+	// on it, not something this buildpack should routinely bypass.
+	//
+	// The setting to relax this has changed name and location across pnpm
+	// versions — v9 and v10 read `package-manager-strict` (as a CLI --config
+	// flag here, since it's the one part of pnpm's config surface that hasn't
+	// moved between .npmrc and pnpm-workspace.yaml), while v11 replaced it
+	// entirely with `pmOnFail` and no longer honors the old setting.
+	if handleVersionMismatch {
+		switch {
+		case pnpmMajor >= 11:
+			installArgs = append(installArgs, "--config.pmOnFail=warn")
+		case pnpmMajor >= 9:
+			installArgs = append(installArgs, "--config.package-manager-strict=false")
 		}
 	}
 

@@ -599,6 +599,165 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 			})
 		})
 
+		context("when PNPM_VERSION_MISMATCH is set to true", func() {
+			it.Before(func() {
+				Expect(os.Setenv("PNPM_VERSION_MISMATCH", "true")).To(Succeed())
+			})
+
+			it.After(func() {
+				Expect(os.Unsetenv("PNPM_VERSION_MISMATCH")).To(Succeed())
+			})
+
+			context("when the resolved pnpm version is 9 or 10", func() {
+				it.Before(func() {
+					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						executions = append(executions, execution)
+
+						if strings.Contains(strings.Join(execution.Args, " "), "store-dir") {
+							_, err := fmt.Fprintln(execution.Stdout, "undefined")
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+							_, err := fmt.Fprintln(execution.Stdout, "10.15.9")
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						if strings.Contains(strings.Join(execution.Args, " "), "install") {
+							Expect(os.MkdirAll(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
+						}
+
+						return nil
+					}
+				})
+
+				it("adds --config.package-manager-strict=false, in addition to --dangerously-allow-all-builds", func() {
+					err := installProcess.Execute(workingDir, modulesLayerPath, false)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(executions[2].Args).To(Equal([]string{
+						"install",
+						"--frozen-lockfile",
+						"--dangerously-allow-all-builds",
+						"--config.package-manager-strict=false",
+					}))
+				})
+			})
+
+			context("when the resolved pnpm version is 11 or newer", func() {
+				it.Before(func() {
+					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						executions = append(executions, execution)
+
+						if strings.Contains(strings.Join(execution.Args, " "), "store-dir") {
+							_, err := fmt.Fprintln(execution.Stdout, "undefined")
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+							_, err := fmt.Fprintln(execution.Stdout, "11.2.0")
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						if strings.Contains(strings.Join(execution.Args, " "), "install") {
+							Expect(os.MkdirAll(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
+						}
+
+						return nil
+					}
+				})
+
+				it("adds --config.pmOnFail=warn instead of --config.package-manager-strict=false", func() {
+					err := installProcess.Execute(workingDir, modulesLayerPath, false)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(executions[2].Args).To(Equal([]string{
+						"install",
+						"--frozen-lockfile",
+						"--dangerously-allow-all-builds",
+						"--config.pmOnFail=warn",
+					}))
+				})
+			})
+
+			context("when the resolved pnpm version is below 9", func() {
+				it.Before(func() {
+					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						executions = append(executions, execution)
+
+						if strings.Contains(strings.Join(execution.Args, " "), "store-dir") {
+							_, err := fmt.Fprintln(execution.Stdout, "undefined")
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+							_, err := fmt.Fprintln(execution.Stdout, "8.15.0")
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						if strings.Contains(strings.Join(execution.Args, " "), "install") {
+							Expect(os.MkdirAll(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
+						}
+
+						return nil
+					}
+				})
+
+				it("adds neither flag, since pnpm below v9 has no packageManager-mismatch check to relax", func() {
+					err := installProcess.Execute(workingDir, modulesLayerPath, false)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(executions[2].Args).To(Equal([]string{
+						"install",
+						"--frozen-lockfile",
+					}))
+				})
+			})
+
+			context("when BP_PNPM_STRICT_BUILD_SCRIPTS is also set to true", func() {
+				it.Before(func() {
+					Expect(os.Setenv("BP_PNPM_STRICT_BUILD_SCRIPTS", "true")).To(Succeed())
+
+					executable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+						executions = append(executions, execution)
+
+						if strings.Contains(strings.Join(execution.Args, " "), "store-dir") {
+							_, err := fmt.Fprintln(execution.Stdout, "undefined")
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						if strings.Contains(strings.Join(execution.Args, " "), "--version") {
+							_, err := fmt.Fprintln(execution.Stdout, "10.15.9")
+							Expect(err).NotTo(HaveOccurred())
+						}
+
+						if strings.Contains(strings.Join(execution.Args, " "), "install") {
+							Expect(os.MkdirAll(filepath.Join(workingDir, "node_modules"), os.ModePerm)).To(Succeed())
+						}
+
+						return nil
+					}
+				})
+
+				it.After(func() {
+					Expect(os.Unsetenv("BP_PNPM_STRICT_BUILD_SCRIPTS")).To(Succeed())
+				})
+
+				it("still checks the pnpm version and adds --config.package-manager-strict=false, but not --dangerously-allow-all-builds", func() {
+					err := installProcess.Execute(workingDir, modulesLayerPath, false)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(executions).To(HaveLen(3))
+					Expect(executions[1].Args).To(Equal([]string{"--version"}))
+					Expect(executions[2].Args).To(Equal([]string{
+						"install",
+						"--frozen-lockfile",
+						"--config.package-manager-strict=false",
+					}))
+				})
+			})
+		})
+
 		context("failure cases", func() {
 			context("the pnpm executable fails to get config", func() {
 				it.Before(func() {
