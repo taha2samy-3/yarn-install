@@ -88,6 +88,15 @@ Starting with pnpm v10, dependency lifecycle scripts (`preinstall`, `install`, `
 
 To avoid silently shipping unbuilt native dependencies, this buildpack automatically passes `--dangerously-allow-all-builds` to `pnpm install` when the resolved pnpm version is 10 or newer. This flag doesn't exist before pnpm v10 and is never added on older versions. Set `BP_PNPM_STRICT_BUILD_SCRIPTS=true` to opt out and keep pnpm's default script-blocking behavior instead.
 
+### Dependency Version Mismatch (`pnpm approve-builds` vs `packageManager`)
+Since pnpm v9, pnpm refuses to run at all if its own version doesn't exactly match a `packageManager` field pinned in `package.json` (`ERR_PNPM_BAD_PM_VERSION`). If the [`pnpm` buildpack](https://github.com/paketo-buildpacks/pnpm) had to substitute a different version than the one requested — for example, because the exact patch release pinned in `packageManager` isn't yet in its dependency metadata — it signals that to this buildpack via a `PNPM_VERSION_MISMATCH` environment variable.
+
+When that variable is `true`, this buildpack relaxes pnpm's own version-match enforcement so the install can still proceed instead of failing outright:
+- pnpm 9 and 10: `--config.package-manager-strict=false`
+- pnpm 11+: `--config.pmOnFail=warn` (the setting above was removed in v11 and replaced by this one)
+
+This relaxation is only applied when a mismatch was actually signaled — it does not affect builds where the delivered pnpm version already matches exactly, so pnpm's version-match guarantee is otherwise left untouched. See the [`pnpm` buildpack's `BP_PNPM_STRICT_VERSION_MATCH`](https://github.com/paketo-buildpacks/pnpm#configuration) if you'd rather the build fail on a version mismatch instead of substituting and relaxing enforcement.
+
 ### Workspaces (Monorepos)
 This buildpack resolves the project root using the same `BP_NODE_PROJECT_PATH` convention as the existing npm and yarn buildpacks, so a `pnpm-lock.yaml`/`package.json` at a specified subdirectory of a larger repository is picked up correctly. It does not currently implement any `pnpm workspaces`-specific behavior (e.g. parsing `pnpm-workspace.yaml` or workspace-aware hoisting) beyond that project-path resolution.
 
