@@ -157,6 +157,22 @@ func testInstallProcess(t *testing.T, context spec.G, it spec.S) {
 						Expect(err).To(MatchError(ContainSubstring("failed to execute pnpm config output")))
 					})
 				})
+
+				context("when node --version fails to execute", func() {
+					it.Before(func() {
+						Expect(os.WriteFile(filepath.Join(workingDir, "pnpm-lock.yaml"), []byte(""), os.ModePerm)).To(Succeed())
+						nodeExecutable.ExecuteCall.Stub = func(execution pexec.Execution) error {
+							return errors.New("node not found")
+						}
+						installProcess = pnpminstall.NewPnpmInstallProcess(executable, nodeExecutable, summer, scribe.NewEmitter(bytes.NewBuffer(nil)))
+					})
+
+					it("fails", func() {
+						_, _, err := installProcess.ShouldRun(workingDir, map[string]interface{}{})
+						Expect(err).To(MatchError(ContainSubstring("node not found")))
+						Expect(err).To(MatchError(ContainSubstring("failed to determine node version")))
+					})
+				})
 			})
 		})
 	})
