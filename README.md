@@ -80,6 +80,10 @@ pack build my-app \
 ### Offline Installation
 This buildpack supports offline installations (e.g., for air-gapped environments). Before installing, the buildpack checks `pnpm config get store-dir`; if that directory already exists locally, `--offline` is automatically appended to the `pnpm install` command. This requires that all necessary packages are already present in the provided store directory.
 
+**Known caveats when using a persistent, externally-provided store:**
+- **Store version compatibility**: pnpm may report `ERR_PNPM_UNEXPECTED_STORE` if the store was populated by a different pnpm *major* version than the one currently resolved (e.g. the store was built with pnpm 9, and a later build resolves pnpm 10). Keep the pnpm major version consistent for a given persistent store, or repopulate the store after a major version change.
+- **`minimumReleaseAge` (pnpm 11+)**: pnpm 11 defaults to refusing packages published less than 24 hours ago (`minimumReleaseAge`), and checking this requires reaching the registry. In a fully air-gapped build this can behave unexpectedly, since there's no registry to check against. If you rely on offline installs with pnpm 11+, review this setting (`minimumReleaseAge` in `pnpm-workspace.yaml`) explicitly rather than relying on the default.
+
 ### Layer Caching
 Dependencies are cached in two independent layers, `build-modules` and `launch-modules`, each reused across builds when a checksum of the following inputs is unchanged: `pnpm-lock.yaml`, `package.json`, the output of `pnpm config list`, the current `NODE_ENV` value, and the resolved Node.js runtime version (`node --version`). The Node.js version is included specifically so that a change in the resolved Node.js version (for example, from a floating `engines.node` range picking up a new release) invalidates the cache — reusing a `node_modules` layer built against a different Node ABI can break any natively-compiled dependencies it contains.
 
@@ -96,6 +100,9 @@ When that variable is `true`, this buildpack relaxes pnpm's own version-match en
 - pnpm 11+: `--config.pmOnFail=warn` (the setting above was removed in v11 and replaced by this one)
 
 This relaxation is only applied when a mismatch was actually signaled — it does not affect builds where the delivered pnpm version already matches exactly, so pnpm's version-match guarantee is otherwise left untouched. See the [`pnpm` buildpack's `BP_PNPM_STRICT_VERSION_MATCH`](https://github.com/paketo-buildpacks/pnpm#configuration) if you'd rather the build fail on a version mismatch instead of substituting and relaxing enforcement.
+
+### Node.js Version Compatibility (pnpm 11+)
+Starting with pnpm v11, pnpm itself requires **Node.js 22 or newer** to run at all — older Node.js versions won't execute the pnpm binary, independent of anything in your `package.json`. This buildpack doesn't currently cross-check the resolved Node.js version against the resolved pnpm version at build time; if your project doesn't pin `engines.node` and ends up with an older Node.js version alongside a pnpm 11+ resolution (e.g. via `BP_PNPM_VERSION`, `packageManager`, or a v11 lockfile), the install will fail when pnpm itself fails to run. If you're using pnpm 11+, pinning `engines.node` to `22` or newer in `package.json` avoids this.
 
 ### Workspaces (Monorepos)
 This buildpack resolves the project root using the same `BP_NODE_PROJECT_PATH` convention as the existing npm and yarn buildpacks, so a `pnpm-lock.yaml`/`package.json` at a specified subdirectory of a larger repository is picked up correctly. It does not currently implement any `pnpm workspaces`-specific behavior (e.g. parsing `pnpm-workspace.yaml` or workspace-aware hoisting) beyond that project-path resolution.
