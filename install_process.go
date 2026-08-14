@@ -230,6 +230,31 @@ func (ip PnpmInstallProcess) Execute(workingDir, modulesLayerPath string, launch
 		if err != nil {
 			return fmt.Errorf("failed to parse pnpm version %q: %w", pnpmVersionBuffer.String(), err)
 		}
+
+		// lightweight sanity check, not a hard requirement — warns instead of
+		// blocking, since pnpm's own error on a real mismatch is clear enough
+		// on its own; this just gets ahead of it with better context. Only
+		// checked here, piggybacking on the pnpm version already being
+		// fetched above for one of the two checks below, rather than
+		// unconditionally, to avoid an extra process execution on every
+		// single install just for this.
+		if pnpmMajor >= 11 {
+			nodeVersionBuffer := bytes.NewBuffer(nil)
+			nodeErr := ip.nodeExecutable.Execute(pexec.Execution{
+				Args:   []string{"--version"},
+				Stdout: nodeVersionBuffer,
+				Stderr: nodeVersionBuffer,
+				Dir:    workingDir,
+			})
+			// Best-effort only: if the node version can't be determined or
+			// parsed for some reason, this check is silently skipped rather
+			// than failing the build over an informational warning.
+			if nodeErr == nil {
+				if nodeMajor, parseErr := parsePnpmMajorVersion(nodeVersionBuffer.String()); parseErr == nil && nodeMajor < 22 {
+					ip.logger.Subprocess("Warning: pnpm %d requires Node.js 22+, but the resolved Node.js version is %d.x — install may fail.", pnpmMajor, nodeMajor)
+				}
+			}
+		}
 	}
 
 	// CHANGE: pnpm v10+ blocks dependency lifecycle scripts (preinstall/install/
